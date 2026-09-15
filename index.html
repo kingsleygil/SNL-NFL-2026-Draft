@@ -619,6 +619,95 @@ body {
   letter-spacing: .5px;
 }
 
+/* ---- THIS WEEK'S MATCHUPS ---- */
+.matchups-section {
+  margin-bottom: 12px;
+}
+.matchups-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.matchup-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 16px;
+  flex: 1 1 280px;
+  border-top: 3px solid var(--nfl-red);
+}
+.matchup-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.matchup-teams {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.matchup-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+.matchup-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+.matchup-team-name {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.matchup-owner-name {
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 2px 8px;
+  color: white;
+}
+.matchup-vs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 60px;
+}
+.matchup-score {
+  font-size: 22px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.matchup-vs-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+}
+.matchup-status {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-top: 2px;
+  text-align: center;
+}
+.matchup-status.live { color: var(--nfl-red); font-weight: 700; }
+.matchup-date {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 6px;
+  font-weight: 500;
+}
+
 /* ---- LIVE BANNER ---- */
 .live-banner {
   background: linear-gradient(135deg, #1a0505, #2d0808);
@@ -1039,6 +1128,11 @@ function getTeamPts(teamName) {
   return pts;
 }
 
+// Games this week where both teams are drafted (owner vs owner)
+function getOwnerMatchups() {
+  return (gamesCache[currentWeek] || []).filter(g => g.homeOwner && g.awayOwner);
+}
+
 // This week's W/L/T result for each of an owner's teams
 function getWeekTeamResults(owner) {
   const ownerTeams = Object.entries(TEAMS).filter(([,t]) => t.owner === owner);
@@ -1220,8 +1314,66 @@ function renderLeaderboard() {
       </div>`;
   }).join('');
 
+  // ── This week's owner vs owner matchups ──
+  const ownerMatchups = getOwnerMatchups();
+  const matchupsHtml = ownerMatchups.length ? `
+    <div class="matchups-section">
+      <div class="section-label">👀 This Week's Draft Matchups — Week ${currentWeek}</div>
+      <div class="matchups-grid">
+        ${ownerMatchups.map(g => {
+          const awayTm = TEAMS[g.awayName];
+          const homeTm = TEAMS[g.homeName];
+          const awayLogo = g.awayLogo || (awayTm ? logoUrl(awayTm.abbr) : '');
+          const homeLogo = g.homeLogo || (homeTm ? logoUrl(homeTm.abbr) : '');
+
+          let vsBlock;
+          if (g.isDone) {
+            const aStyle = g.awayWin ? 'color:var(--win)' : g.homeWin ? 'opacity:.4' : '';
+            const hStyle = g.homeWin ? 'color:var(--win)' : g.awayWin ? 'opacity:.4' : '';
+            vsBlock = `<div class="matchup-vs">
+              <div class="matchup-score">
+                <span style="${aStyle}">${g.awayScore}</span>–<span style="${hStyle}">${g.homeScore}</span>
+              </div>
+              <div class="matchup-status">Final</div>
+            </div>`;
+          } else if (g.isLive) {
+            vsBlock = `<div class="matchup-vs">
+              <div class="matchup-score">${g.awayScore}–${g.homeScore}</div>
+              <div class="matchup-status live"><span class="live-dot"></span>Q${g.quarter} ${g.clock}</div>
+            </div>`;
+          } else {
+            const dateStr = g.date.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+            const timeStr = g.date.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+            vsBlock = `<div class="matchup-vs">
+              <div class="matchup-vs-label">VS</div>
+              <div class="matchup-status">${timeStr}<br>${dateStr}</div>
+            </div>`;
+          }
+
+          return `
+            <div class="matchup-card">
+              <div class="matchup-header">⚔️ ${g.awayOwner} vs ${g.homeOwner}</div>
+              <div class="matchup-teams">
+                <div class="matchup-side">
+                  <img src="${awayLogo}" class="matchup-logo" onerror="this.style.display='none'">
+                  <div class="matchup-team-name">${g.awayName}</div>
+                  <span class="matchup-owner-name" style="background:${OWNER_COLORS[g.awayOwner]}">${g.awayOwner}</span>
+                </div>
+                ${vsBlock}
+                <div class="matchup-side">
+                  <img src="${homeLogo}" class="matchup-logo" onerror="this.style.display='none'">
+                  <div class="matchup-team-name">${g.homeName}</div>
+                  <span class="matchup-owner-name" style="background:${OWNER_COLORS[g.homeOwner]}">${g.homeOwner}</span>
+                </div>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>` : '';
+
   el.innerHTML = `
     ${liveBanner}
+    ${matchupsHtml}
     ${momentumRow}
     <div class="section-label">Draft Standings</div>
     <div class="lb-list">${cards}</div>
