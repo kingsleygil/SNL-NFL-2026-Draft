@@ -523,8 +523,40 @@ body {
   overflow: hidden;
 }
 @media (max-width: 600px) {
+  .main { padding: 10px 12px; }
+
+  /* Stack performers below standings card */
   .lb-owner-group { flex-direction: column; }
   .lb-owner-group .performers-card { flex: none; }
+
+  /* Tighter standings card */
+  .lb-card { padding: 12px 14px; gap: 10px; }
+  .lb-rank { font-size: 22px; min-width: 30px; }
+  .lb-name { font-size: 17px; margin-bottom: 5px; }
+  .lb-logo { width: 32px; height: 32px; }
+  .lb-logos { gap: 5px; }
+  .lb-points { font-size: 28px; }
+  .lb-record { font-size: 13px; margin-top: 3px; }
+  .lb-diff { font-size: 12px; }
+  .lb-stats { min-width: 72px; }
+
+  /* Smaller result chips */
+  .week-result-chip { font-size: 11px; padding: 2px 7px 2px 4px; }
+
+  /* Compact performers card */
+  .performers-card { padding: 10px 12px; }
+  .performer-headshot, .performer-headshot-fb { width: 30px; height: 30px; }
+  .performer-name { font-size: 13px; }
+  .performer-stat .performer-value { font-size: 12px; }
+  .performer-stat .performer-cat { font-size: 10px; }
+
+  /* Momentum row */
+  .momentum-row { gap: 6px; }
+  .momentum-item { padding: 8px 10px; font-size: 12px; }
+  .momentum-item strong { font-size: 13px; }
+
+  /* Week badge */
+  .week-pts-badge { font-size: 11px; }
 }
 
 /* ---- LOSING TEAMS ROW ---- */
