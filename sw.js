@@ -1,10 +1,10 @@
-const CACHE = 'snl-nfl-v1';
+const CACHE = 'snl-nfl-v2';
 const ASSETS = [
-  '/wc-draft-tracker/',
-  '/wc-draft-tracker/index.html',
-  '/wc-draft-tracker/icon-192.png',
-  '/wc-draft-tracker/icon-512.png',
-  '/wc-draft-tracker/apple-touch-icon.png',
+  '/SNL-NFL-2026-Draft/',
+  '/SNL-NFL-2026-Draft/index.html',
+  '/SNL-NFL-2026-Draft/icon-192.png',
+  '/SNL-NFL-2026-Draft/icon-512.png',
+  '/SNL-NFL-2026-Draft/apple-touch-icon.png',
 ];
 
 self.addEventListener('install', e => {
