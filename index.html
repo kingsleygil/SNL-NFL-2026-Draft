@@ -791,7 +791,7 @@ function renderLeaderboard() {
 
 function renderSchedule() {
   const el    = document.getElementById('tab-schedule');
-  const games = (gamesCache[viewWeek] || []).filter(g => g.isDraft);
+  const games = gamesCache[viewWeek] || [];
 
   const prevOk = viewWeek > 1;
   const nextOk = viewWeek < currentWeek;
@@ -801,7 +801,7 @@ function renderSchedule() {
   if (!gamesCache[viewWeek]) {
     gamesHtml = '<div class="loading-msg"><div class="spinner"></div>Loading…</div>';
   } else if (games.length === 0) {
-    gamesHtml = '<div class="no-games-msg">No drafted team games this week.</div>';
+    gamesHtml = '<div class="no-games-msg">No games scheduled this week.</div>';
   } else {
     gamesHtml = `<div class="games-list">` + games.map(g => {
       const awayTm = TEAMS[g.awayName];
