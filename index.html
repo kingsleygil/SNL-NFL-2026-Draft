@@ -793,8 +793,9 @@ function renderSchedule() {
   const el    = document.getElementById('tab-schedule');
   const games = gamesCache[viewWeek] || [];
 
+  const maxWeek = isPlayoffs ? 4 : 18;
   const prevOk = viewWeek > 1;
-  const nextOk = viewWeek < currentWeek;
+  const nextOk = viewWeek < maxWeek;
 
   let gamesHtml;
 
@@ -914,8 +915,13 @@ function renderTeams() {
 
 // ── INTERACTIONS ───────────────────────────────────────────────────────────
 
-function changeWeek(delta) {
-  viewWeek = Math.max(1, Math.min(currentWeek, viewWeek + delta));
+async function changeWeek(delta) {
+  const maxWeek = isPlayoffs ? 4 : 18;
+  viewWeek = Math.max(1, Math.min(maxWeek, viewWeek + delta));
+  if (!gamesCache[viewWeek]) {
+    renderSchedule();
+    gamesCache[viewWeek] = await fetchWeek(viewWeek, isPlayoffs ? 3 : 2);
+  }
   renderSchedule();
 }
 
