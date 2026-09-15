@@ -1164,7 +1164,7 @@ function renderLeaderboard() {
     const performers = getTopPerformers(s.owner);
     const performersHtml = performers.length ? `
       <div class="performers-card">
-        <div class="performers-title">⚡ Week ${currentWeek} Performers</div>
+        <div class="performers-title">⚡ Week ${currentWeek} Top Performers</div>
         <div class="performers-list">
           ${performers.slice(0, 3).map(p => `
             <div class="performer-row">
