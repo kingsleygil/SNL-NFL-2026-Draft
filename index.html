@@ -504,6 +504,130 @@ body {
   font-weight: 600;
 }
 
+/* ---- LIVE BANNER ---- */
+.live-banner {
+  background: linear-gradient(135deg, #1a0505, #2d0808);
+  border: 1px solid rgba(213,10,10,.4);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.live-game {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+.live-owner {
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 1px 6px;
+  color: white;
+}
+.live-clock {
+  font-size: 10px;
+  opacity: .7;
+}
+.live-divider {
+  color: rgba(255,255,255,.3);
+  margin: 0 2px;
+}
+
+/* ---- MOMENTUM ROW ---- */
+.momentum-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.momentum-item {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+.momentum-item strong { font-size: 14px; font-weight: 800; }
+.momentum-item span   { font-size: 11px; color: var(--muted); }
+.momentum-item.hot { border-left: 3px solid var(--win); }
+.momentum-item.cold { border-left: 3px solid var(--loss); }
+
+/* ---- LB CARD ENHANCEMENTS ---- */
+.lb-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.week-pts-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--bg);
+  border-radius: 20px;
+  padding: 1px 6px;
+}
+
+/* Last game result */
+.last-game {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 5px;
+}
+.last-result {
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: white;
+}
+.last-result.last-win  { background: var(--win); }
+.last-result.last-loss { background: var(--loss); }
+.last-result.last-tie  { background: var(--tie); }
+.last-score {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Points breakdown bar */
+.pts-bar {
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  height: 6px;
+  gap: 1px;
+  margin-bottom: 3px;
+}
+.bar-seg {
+  border-radius: 2px;
+  min-width: 4px;
+  transition: flex .3s ease;
+}
+.pts-bar-labels {
+  display: flex;
+  gap: 8px;
+}
+.bar-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---- MISC ---- */
 .live-dot {
   display: inline-block;
@@ -739,6 +863,61 @@ function getTeamRecord(teamName) {
 
 function fmtPts(n) { return n % 1 === 0 ? n.toFixed(0) : n.toFixed(1); }
 
+// Live games involving drafted teams
+function getLiveGames() {
+  return (gamesCache[currentWeek] || []).filter(g => g.isLive && g.isDraft);
+}
+
+// Points earned this week only (for momentum row)
+function getWeekPoints(owner, week) {
+  let pts = 0;
+  for (const g of (gamesCache[week] || [])) {
+    if (!g.isDone) continue;
+    if (g.homeOwner === owner) pts += g.isTie ? 0.5 : g.homeWin ? 1 : 0;
+    if (g.awayOwner === owner) pts += g.isTie ? 0.5 : g.awayWin ? 1 : 0;
+  }
+  return pts;
+}
+
+// Per-team points contribution for breakdown bar
+function getTeamPts(teamName) {
+  let pts = 0;
+  for (const games of Object.values(gamesCache)) {
+    for (const g of games) {
+      if (!g.isDone) continue;
+      const isHome = g.homeName === teamName;
+      const isAway = g.awayName === teamName;
+      if (!isHome && !isAway) continue;
+      const iWon = isHome ? g.homeWin : g.awayWin;
+      if (g.isTie) pts += 0.5; else if (iWon) pts += 1;
+    }
+  }
+  return pts;
+}
+
+// Most recent completed game for any of an owner's teams
+function getLastGame(owner) {
+  const allDone = [];
+  for (const games of Object.values(gamesCache)) {
+    for (const g of games) {
+      if (!g.isDone) continue;
+      if (g.homeOwner === owner || g.awayOwner === owner) allDone.push(g);
+    }
+  }
+  if (!allDone.length) return null;
+  allDone.sort((a, b) => b.date - a.date);
+  const g = allDone[0];
+  const isHome = g.homeOwner === owner;
+  const myTeam   = isHome ? g.homeName : g.awayName;
+  const oppTeam  = isHome ? g.awayName : g.homeName;
+  const myScore  = isHome ? g.homeScore : g.awayScore;
+  const oppScore = isHome ? g.awayScore : g.homeScore;
+  const iWon     = isHome ? g.homeWin   : g.awayWin;
+  const result   = g.isTie ? 'T' : iWon ? 'W' : 'L';
+  const abbr     = TEAMS[myTeam]?.abbr || '';
+  return { myTeam, oppTeam, myScore, oppScore, result, abbr };
+}
+
 function logoImgPair(url, abbr, color, size) {
   return `<img src="${url}" width="${size}" height="${size}" style="object-fit:contain;border-radius:4px"
     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
@@ -750,37 +929,101 @@ function logoImgPair(url, abbr, color, size) {
 function renderLeaderboard() {
   const el     = document.getElementById('tab-leaderboard');
   const scores = calculateScores();
-
   const rankIcons = ['🏆','🥈','🥉'];
 
+  // ── Option 1: Live game banner ──
+  const liveGames = getLiveGames();
+  const liveBanner = liveGames.length ? `
+    <div class="live-banner">
+      <span class="live-dot"></span> LIVE NOW
+      ${liveGames.map(g => {
+        const awayBadge = g.awayOwner ? `<span class="live-owner" style="background:${OWNER_COLORS[g.awayOwner]}">${g.awayOwner}</span>` : '';
+        const homeBadge = g.homeOwner ? `<span class="live-owner" style="background:${OWNER_COLORS[g.homeOwner]}">${g.homeOwner}</span>` : '';
+        const awayShort = g.awayName.split(' ').slice(-1)[0];
+        const homeShort = g.homeName.split(' ').slice(-1)[0];
+        return `<span class="live-game">${awayBadge}${awayShort} <strong>${g.awayScore}–${g.homeScore}</strong> ${homeShort}${homeBadge} <span class="live-clock">Q${g.quarter} ${g.clock}</span></span>`;
+      }).join('<span class="live-divider">·</span>')}
+    </div>` : '';
+
+  // ── Option 2: Weekly momentum row ──
+  const thisWeekPts  = Object.fromEntries(OWNERS.map(o => [o, getWeekPoints(o, currentWeek)]));
+  const lastWeekPts  = Object.fromEntries(OWNERS.map(o => [o, getWeekPoints(o, currentWeek - 1)]));
+  const weekLeader   = [...OWNERS].sort((a,b) => thisWeekPts[b] - thisWeekPts[a])[0];
+  const weekLoser    = [...OWNERS].sort((a,b) => thisWeekPts[a] - thisWeekPts[b])[0];
+  const anyThisWeek  = OWNERS.some(o => thisWeekPts[o] > 0);
+  const momentumRow  = anyThisWeek ? `
+    <div class="momentum-row">
+      <div class="momentum-item hot">
+        🔥 <strong>${weekLeader}</strong>
+        <span>${fmtPts(thisWeekPts[weekLeader])} pts this week</span>
+      </div>
+      <div class="momentum-item cold">
+        🥶 <strong>${weekLoser}</strong>
+        <span>${fmtPts(thisWeekPts[weekLoser])} pts this week</span>
+      </div>
+    </div>` : '';
+
+  // ── Build leaderboard cards ──
+  const cards = scores.map((s, i) => {
+    const ownerTeams = Object.entries(TEAMS).filter(([, t]) => t.owner === s.owner);
+    const diff    = s.diff > 0 ? `+${s.diff}` : `${s.diff}`;
+    const diffCls = s.diff > 0 ? 'pos' : s.diff < 0 ? 'neg' : '';
+    const rank    = rankIcons[i] || `${i + 1}`;
+    const record  = `${s.wins}-${s.losses}${s.ties ? `-${s.ties}` : ''}`;
+
+    // ── Option 4: Points breakdown bar ──
+    const teamPts    = ownerTeams.map(([name, t]) => ({ name, t, pts: getTeamPts(name) }));
+    const totalPts   = s.points || 1;
+    const barSegments = teamPts.map(({ t, pts }) =>
+      `<div class="bar-seg" style="flex:${pts || 0.05};background:${t.color}" title="${t.abbr.toUpperCase()}: ${fmtPts(pts)}pt"></div>`
+    ).join('');
+    const barLabels = teamPts.map(({ t, pts }) =>
+      `<span class="bar-label"><img src="${logoUrl(t.abbr)}" width="14" height="14" style="object-fit:contain;vertical-align:middle;border-radius:2px" onerror="this.style.display='none'">${fmtPts(pts)}</span>`
+    ).join('');
+
+    // ── Option 5: Last game result ──
+    const last = getLastGame(s.owner);
+    const lastGameHtml = last ? (() => {
+      const cls   = last.result === 'W' ? 'last-win' : last.result === 'L' ? 'last-loss' : 'last-tie';
+      const label = last.result === 'W' ? 'W' : last.result === 'L' ? 'L' : 'T';
+      const oppShort = last.oppTeam.split(' ').slice(-1)[0];
+      return `<div class="last-game">
+        <span class="last-result ${cls}">${label}</span>
+        <img src="${logoUrl(last.abbr)}" width="14" height="14" style="object-fit:contain;vertical-align:middle;border-radius:2px" onerror="this.style.display='none'">
+        <span class="last-score">${last.myTeam.split(' ').slice(-1)[0]} ${last.myScore}–${last.oppScore} vs ${oppShort}</span>
+      </div>`;
+    })() : '';
+
+    const weekPt = thisWeekPts[s.owner];
+    const weekBadge = anyThisWeek
+      ? `<span class="week-pts-badge" style="color:${weekPt > 0 ? 'var(--win)' : 'var(--muted)'}">+${fmtPts(weekPt)} Wk${currentWeek}</span>`
+      : '';
+
+    return `
+      <div class="lb-card">
+        <div class="lb-rank">${rank}</div>
+        <div class="lb-info">
+          <div class="lb-name-row">
+            <span class="lb-name" style="color:${OWNER_COLORS[s.owner]}">${s.owner}</span>
+            ${weekBadge}
+          </div>
+          ${lastGameHtml}
+          <div class="pts-bar">${barSegments}</div>
+          <div class="pts-bar-labels">${barLabels}</div>
+        </div>
+        <div class="lb-stats">
+          <div class="lb-points">${fmtPts(s.points)}</div>
+          <div class="lb-record">${record}</div>
+          <div class="lb-diff ${diffCls}">${diff} diff</div>
+        </div>
+      </div>`;
+  }).join('');
+
   el.innerHTML = `
+    ${liveBanner}
+    ${momentumRow}
     <div class="section-label">Draft Standings</div>
-    <div class="lb-list">
-      ${scores.map((s, i) => {
-        const ownerTeams = Object.entries(TEAMS).filter(([, t]) => t.owner === s.owner);
-        const logos = ownerTeams.map(([, t]) =>
-          `<img class="lb-logo" src="${logoUrl(t.abbr)}"
-            onerror="this.style.display='none'">`
-        ).join('');
-        const diff    = s.diff > 0 ? `+${s.diff}` : `${s.diff}`;
-        const diffCls = s.diff > 0 ? 'pos' : s.diff < 0 ? 'neg' : '';
-        const rank    = rankIcons[i] || `${i + 1}`;
-        const record  = `${s.wins}-${s.losses}${s.ties ? `-${s.ties}` : ''}`;
-        return `
-          <div class="lb-card">
-            <div class="lb-rank">${rank}</div>
-            <div class="lb-info">
-              <div class="lb-name" style="color:${OWNER_COLORS[s.owner]}">${s.owner}</div>
-              <div class="lb-logos">${logos}</div>
-            </div>
-            <div class="lb-stats">
-              <div class="lb-points">${fmtPts(s.points)}</div>
-              <div class="lb-record">${record}</div>
-              <div class="lb-diff ${diffCls}">${diff} diff</div>
-            </div>
-          </div>`;
-      }).join('')}
-    </div>
+    <div class="lb-list">${cards}</div>
     <div class="scoring-note">
       <strong>Scoring:</strong>&nbsp; Win = 1 pt &nbsp;·&nbsp; Tie = 0.5 pts &nbsp;·&nbsp; Loss = 0 pts
       &nbsp;·&nbsp; Tiebreaker: point differential
