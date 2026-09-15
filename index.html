@@ -504,6 +504,83 @@ body {
   font-weight: 600;
 }
 
+/* ---- OWNER GROUP ---- */
+.lb-owner-group { display: flex; flex-direction: column; gap: 4px; }
+
+/* ---- PERFORMERS CARD ---- */
+.performers-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 10px 14px;
+  border-left: 3px solid var(--nfl-red);
+}
+.performers-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.performers-list { display: flex; flex-direction: column; gap: 6px; }
+.performer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.performer-headshot {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--border);
+}
+.performer-headshot-fb {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: white;
+}
+.performer-info { flex: 1; min-width: 0; }
+.performer-name {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.performer-team {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 1px;
+}
+.performer-stat { text-align: right; flex-shrink: 0; }
+.performer-value {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.performer-cat {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
 /* ---- LIVE BANNER ---- */
 .live-banner {
   background: linear-gradient(135deg, #1a0505, #2d0808);
@@ -789,8 +866,37 @@ function parseGames(events) {
       isDraft: !!(homeTm || awayTm),
       homeOwner: homeTm?.owner || null,
       awayOwner: awayTm?.owner || null,
+      leaders: parseLeaders(comp?.leaders || [], homeName, awayName),
     };
   });
+}
+
+function parseLeaders(leaders, homeName, awayName) {
+  const statMap = { passingYards: 'PASS', rushingYards: 'RUSH', receivingYards: 'REC' };
+  const out = [];
+  for (const cat of leaders) {
+    const key = statMap[cat.name];
+    if (!key) continue;
+    const top = cat.leaders?.[0];
+    if (!top) continue;
+    const teamId   = top.team?.id;
+    const compHome = leaders[0]?.leaders?.[0]; // used below just to find team
+    // resolve team name from competitor team id
+    const teamName = top.athlete?.team?.displayName
+      ? normalizeTeam(top.athlete.team.displayName)
+      : null;
+    out.push({
+      stat: key,
+      name: top.athlete?.displayName || '',
+      value: top.displayValue || '',
+      headshot: top.athlete?.headshot?.href || '',
+      teamName: teamName || homeName,
+      teamOwner: teamName ? (TEAMS[teamName]?.owner || null) : null,
+      teamColor: teamName ? (TEAMS[teamName]?.color || '#555') : '#555',
+      teamAbbr:  teamName ? (TEAMS[teamName]?.abbr  || '')    : '',
+    });
+  }
+  return out;
 }
 
 async function loadCurrentWeek() {
@@ -893,6 +999,24 @@ function getTeamPts(teamName) {
     }
   }
   return pts;
+}
+
+// Top performers from the current week for a given owner's teams
+function getTopPerformers(owner) {
+  const ownerTeams = new Set(Object.entries(TEAMS).filter(([,t]) => t.owner === owner).map(([n]) => n));
+  const seen = new Set();
+  const performers = [];
+  for (const g of (gamesCache[currentWeek] || [])) {
+    if (!g.isDone && !g.isLive) continue;
+    for (const l of (g.leaders || [])) {
+      if (!ownerTeams.has(l.teamName)) continue;
+      const key = l.name + l.stat;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      performers.push(l);
+    }
+  }
+  return performers;
 }
 
 // Most recent completed game for any of an owner's teams
@@ -999,23 +1123,52 @@ function renderLeaderboard() {
       ? `<span class="week-pts-badge" style="color:${weekPt > 0 ? 'var(--win)' : 'var(--muted)'}">+${fmtPts(weekPt)} Wk${currentWeek}</span>`
       : '';
 
+    // ── Option: Top Performers box ──
+    const performers = getTopPerformers(s.owner);
+    const performersHtml = performers.length ? `
+      <div class="performers-card">
+        <div class="performers-title">⚡ Week ${currentWeek} Performers</div>
+        <div class="performers-list">
+          ${performers.map(p => `
+            <div class="performer-row">
+              ${p.headshot
+                ? `<img src="${p.headshot}" class="performer-headshot" onerror="this.style.display='none'">`
+                : `<div class="performer-headshot-fb" style="background:${p.teamColor}">${p.teamAbbr.toUpperCase()}</div>`}
+              <div class="performer-info">
+                <div class="performer-name">${p.name}</div>
+                <div class="performer-team">
+                  <img src="${logoUrl(p.teamAbbr)}" width="12" height="12" style="object-fit:contain;vertical-align:middle;border-radius:2px" onerror="this.style.display='none'">
+                  ${p.teamName.split(' ').slice(-1)[0]}
+                </div>
+              </div>
+              <div class="performer-stat">
+                <div class="performer-value">${p.value}</div>
+                <div class="performer-cat">${p.stat}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>` : '';
+
     return `
-      <div class="lb-card">
-        <div class="lb-rank">${rank}</div>
-        <div class="lb-info">
-          <div class="lb-name-row">
-            <span class="lb-name" style="color:${OWNER_COLORS[s.owner]}">${s.owner}</span>
-            ${weekBadge}
+      <div class="lb-owner-group">
+        <div class="lb-card">
+          <div class="lb-rank">${rank}</div>
+          <div class="lb-info">
+            <div class="lb-name-row">
+              <span class="lb-name" style="color:${OWNER_COLORS[s.owner]}">${s.owner}</span>
+              ${weekBadge}
+            </div>
+            ${lastGameHtml}
+            <div class="pts-bar">${barSegments}</div>
+            <div class="pts-bar-labels">${barLabels}</div>
           </div>
-          ${lastGameHtml}
-          <div class="pts-bar">${barSegments}</div>
-          <div class="pts-bar-labels">${barLabels}</div>
+          <div class="lb-stats">
+            <div class="lb-points">${fmtPts(s.points)}</div>
+            <div class="lb-record">${record}</div>
+            <div class="lb-diff ${diffCls}">${diff} diff</div>
+          </div>
         </div>
-        <div class="lb-stats">
-          <div class="lb-points">${fmtPts(s.points)}</div>
-          <div class="lb-record">${record}</div>
-          <div class="lb-diff ${diffCls}">${diff} diff</div>
-        </div>
+        ${performersHtml}
       </div>`;
   }).join('');
 
