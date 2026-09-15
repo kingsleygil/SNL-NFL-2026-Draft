@@ -673,15 +673,6 @@ body {
   font-size: 13px;
 }
 .momentum-item strong { font-size: 14px; font-weight: 800; }
-.streak-badge { display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:800;padding:2px 8px;border-radius:20px;letter-spacing:.5px; }
-.streak-badge.W { background:#dcfce7; color:#15803d; }
-.streak-badge.L { background:#fee2e2; color:#dc2626; }
-.streak-badge.T { background:#fef9c3; color:#a16207; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  .streak-badge.W { background:#14532d; color:#86efac; }
-  .streak-badge.L { background:#7f1d1d; color:#fca5a5; }
-  .streak-badge.T { background:#713f12; color:#fde68a; }
-} }
 .momentum-item span   { font-size: 11px; color: var(--muted); }
 .momentum-item.hot { border-left: 3px solid var(--win); }
 .momentum-item.cold { border-left: 3px solid var(--loss); }
@@ -1107,27 +1098,6 @@ function getLastGame(owner) {
   return { myTeam, oppTeam, myScore, oppScore, result, abbr };
 }
 
-// Current win/loss/tie streak across all weeks
-function getStreak(owner) {
-  const results = [];
-  for (let w = 1; w <= 18; w++) {
-    if (!gamesCache[w]) continue;
-    const pts = getWeekPoints(owner, w);
-    if (pts === 0 && !gamesCache[w].some(g => g.isDone && (g.homeOwner === owner || g.awayOwner === owner))) continue;
-    if (pts === 1) results.push('W');
-    else if (pts === 0.5) results.push('T');
-    else results.push('L');
-  }
-  if (!results.length) return null;
-  const last = results[results.length - 1];
-  let count = 0;
-  for (let i = results.length - 1; i >= 0; i--) {
-    if (results[i] === last) count++;
-    else break;
-  }
-  return { type: last, count };
-}
-
 function logoImgPair(url, abbr, color, size) {
   return `<img src="${url}" width="${size}" height="${size}" style="object-fit:contain;border-radius:4px"
     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
@@ -1183,11 +1153,6 @@ function renderLeaderboard() {
     const record  = `${s.wins}-${s.losses}${s.ties ? `-${s.ties}` : ''}`;
 
 
-    const streak = getStreak(s.owner);
-    const streakBadge = streak
-      ? `<span class="streak-badge ${streak.type}">${streak.count}${streak.type}</span>`
-      : '';
-
     const weekPt = thisWeekPts[s.owner];
     const weekBadge = anyThisWeek
       ? `<span class="week-pts-badge" style="color:${weekPt > 0 ? 'var(--win)' : 'var(--muted)'}">+${fmtPts(weekPt)} Wk${currentWeek}</span>`
@@ -1238,7 +1203,6 @@ function renderLeaderboard() {
           <div class="lb-info" style="min-width:0;overflow:hidden">
             <div class="lb-name-row">
               <span class="lb-name" style="color:${OWNER_COLORS[s.owner]}">${s.owner}</span>
-              ${streakBadge}
               ${weekBadge}
             </div>
             <div class="lb-logos" style="margin-bottom:4px">${ownerTeams.map(([,t]) =>
