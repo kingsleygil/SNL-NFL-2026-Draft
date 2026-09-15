@@ -1129,20 +1129,21 @@ function renderLeaderboard() {
     </div>` : '';
 
   // ── Option 2: Weekly momentum row ──
-  const thisWeekPts  = Object.fromEntries(OWNERS.map(o => [o, getWeekPoints(o, currentWeek)]));
-  const lastWeekPts  = Object.fromEntries(OWNERS.map(o => [o, getWeekPoints(o, currentWeek - 1)]));
-  const weekLeader   = [...OWNERS].sort((a,b) => thisWeekPts[b] - thisWeekPts[a])[0];
-  const weekLoser    = [...OWNERS].sort((a,b) => thisWeekPts[a] - thisWeekPts[b])[0];
-  const anyThisWeek  = OWNERS.some(o => thisWeekPts[o] > 0);
-  const momentumRow  = anyThisWeek ? `
+  const thisWeekPts = Object.fromEntries(OWNERS.map(o => [o, getWeekPoints(o, currentWeek)]));
+  const anyThisWeek = OWNERS.some(o => thisWeekPts[o] > 0);
+  const topPts      = Math.max(...OWNERS.map(o => thisWeekPts[o]));
+  const botPts      = Math.min(...OWNERS.map(o => thisWeekPts[o]));
+  const weekLeaders = OWNERS.filter(o => thisWeekPts[o] === topPts);
+  const weekLosers  = OWNERS.filter(o => thisWeekPts[o] === botPts);
+  const momentumRow = anyThisWeek ? `
     <div class="momentum-row">
       <div class="momentum-item hot">
-        🔥 <strong>${weekLeader}</strong>
-        <span>${fmtPts(thisWeekPts[weekLeader])} pts this week</span>
+        🔥 <strong>${weekLeaders.join(', ')}</strong>
+        <span>${fmtPts(topPts)} pts this week</span>
       </div>
       <div class="momentum-item cold">
-        🥶 <strong>${weekLoser}</strong>
-        <span>${fmtPts(thisWeekPts[weekLoser])} pts this week</span>
+        🥶 <strong>${weekLosers.join(', ')}</strong>
+        <span>${fmtPts(botPts)} pts this week</span>
       </div>
     </div>` : '';
 
