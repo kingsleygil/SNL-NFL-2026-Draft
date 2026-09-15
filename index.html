@@ -930,7 +930,7 @@ function parseLeaders(leaders, homeName, awayName) {
       stat: key,
       name: top.athlete?.displayName || '',
       value: top.displayValue || '',
-      headshot: top.athlete?.headshot?.href || '',
+      headshot: top.athlete?.headshot?.href || top.athlete?.headshot || (top.athlete?.id ? `https://a.espncdn.com/i/headshots/nfl/players/full/${top.athlete.id}.png` : ''),
       teamName: teamName || homeName,
       teamOwner: teamName ? (TEAMS[teamName]?.owner || null) : null,
       teamColor: teamName ? (TEAMS[teamName]?.color || '#555') : '#555',
@@ -1168,9 +1168,9 @@ function renderLeaderboard() {
         <div class="performers-list">
           ${performers.slice(0, 3).map(p => `
             <div class="performer-row">
-              ${p.headshot
-                ? `<img src="${p.headshot}" class="performer-headshot" onerror="this.style.display='none'">`
-                : `<div class="performer-headshot-fb" style="background:${p.teamColor}">${p.teamAbbr.toUpperCase()}</div>`}
+              <img src="${p.headshot || ''}" class="performer-headshot"
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <div class="performer-headshot-fb" style="background:${p.teamColor};display:${p.headshot ? 'none' : 'flex'}">${p.teamAbbr.toUpperCase()}</div>
               <div class="performer-info">
                 <div class="performer-name">${p.name}</div>
                 <div class="performer-team">
