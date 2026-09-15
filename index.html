@@ -509,18 +509,15 @@ body {
   display: flex;
   flex-direction: row;
   gap: 8px;
-  align-items: stretch;
-  overflow: hidden;
+  align-items: flex-start;
 }
 .lb-owner-group .lb-card {
-  flex: 2 1 0;
+  flex: 2 1 auto;
   min-width: 0;
-  overflow: hidden;
 }
 .lb-owner-group .performers-card {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
 }
 @media (max-width: 600px) {
   .main { padding: 10px 12px; }
@@ -1232,7 +1229,7 @@ function renderLeaderboard() {
       <div class="lb-owner-group">
         <div class="lb-card">
           <div class="lb-rank">${rank}</div>
-          <div class="lb-info" style="min-width:0;overflow:hidden">
+          <div class="lb-info" style="min-width:0">
             <div class="lb-name-row">
               <span class="lb-name" style="color:${OWNER_COLORS[s.owner]}">${s.owner}</span>
               ${weekBadge}
