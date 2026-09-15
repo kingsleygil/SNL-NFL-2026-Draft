@@ -1,4 +1,4 @@
-const CACHE = 'snl-nfl-v4';
+const CACHE = 'snl-nfl-v5';
 const ASSETS = [
   '/SNL-NFL-2026-Draft/',
   '/SNL-NFL-2026-Draft/index.html',
