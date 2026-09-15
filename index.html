@@ -968,12 +968,12 @@ function parseGames(events) {
       isDraft: !!(homeTm || awayTm),
       homeOwner: homeTm?.owner || null,
       awayOwner: awayTm?.owner || null,
-      leaders: parseLeaders(comp?.leaders || [], homeName, awayName),
+      leaders: parseLeaders(comp?.leaders || [], homeName, awayName, home?.team?.id, away?.team?.id),
     };
   });
 }
 
-function parseLeaders(leaders, homeName, awayName) {
+function parseLeaders(leaders, homeName, awayName, homeId, awayId) {
   const statMap = { passingYards: 'PASS', rushingYards: 'RUSH', receivingYards: 'REC' };
   const out = [];
   for (const cat of leaders) {
@@ -981,12 +981,15 @@ function parseLeaders(leaders, homeName, awayName) {
     if (!key) continue;
     const top = cat.leaders?.[0];
     if (!top) continue;
-    const teamId   = top.team?.id;
-    const compHome = leaders[0]?.leaders?.[0]; // used below just to find team
-    // resolve team name from competitor team id
-    const teamName = top.athlete?.team?.displayName
+    const teamId = top.team?.id;
+    // Match team id to home/away competitor to resolve team name
+    let teamName = top.athlete?.team?.displayName
       ? normalizeTeam(top.athlete.team.displayName)
       : null;
+    if (!teamName && teamId) {
+      if (teamId === homeId) teamName = homeName;
+      else if (teamId === awayId) teamName = awayName;
+    }
     out.push({
       stat: key,
       name: top.athlete?.displayName || '',
