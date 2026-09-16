@@ -1204,9 +1204,15 @@ function renderLeaderboard() {
       }).join('<span class="live-divider">·</span>')}
     </div>` : '';
 
-  // ── Option 2: Weekly momentum row ──
-  const thisWeekPts = Object.fromEntries(OWNERS.map(o => [o, getWeekPoints(o, currentWeek)]));
-  const anyThisWeek = OWNERS.some(o => thisWeekPts[o] > 0);
+  // ── Option 2: Weekly momentum row (falls back to prev week if current hasn't started) ──
+  let momentumWeek = currentWeek;
+  let thisWeekPts  = Object.fromEntries(OWNERS.map(o => [o, getWeekPoints(o, currentWeek)]));
+  let anyThisWeek  = OWNERS.some(o => thisWeekPts[o] > 0);
+  if (!anyThisWeek && currentWeek > 1 && gamesCache[currentWeek - 1]) {
+    momentumWeek = currentWeek - 1;
+    thisWeekPts  = Object.fromEntries(OWNERS.map(o => [o, getWeekPoints(o, momentumWeek)]));
+    anyThisWeek  = OWNERS.some(o => thisWeekPts[o] > 0);
+  }
   const topPts      = Math.max(...OWNERS.map(o => thisWeekPts[o]));
   const botPts      = Math.min(...OWNERS.map(o => thisWeekPts[o]));
   const weekLeaders = OWNERS.filter(o => thisWeekPts[o] === topPts);
@@ -1215,11 +1221,11 @@ function renderLeaderboard() {
     <div class="momentum-row">
       <div class="momentum-item hot">
         🔥 <strong>${weekLeaders.join(', ')}</strong>
-        <span>${fmtPts(topPts)} pts this week</span>
+        <span>${fmtPts(topPts)} pts Wk${momentumWeek}</span>
       </div>
       <div class="momentum-item cold">
         🥶 <strong>${weekLosers.join(', ')}</strong>
-        <span>${fmtPts(botPts)} pts this week</span>
+        <span>${fmtPts(botPts)} pts Wk${momentumWeek}</span>
       </div>
     </div>` : '';
 
@@ -1234,7 +1240,7 @@ function renderLeaderboard() {
 
     const weekPt = thisWeekPts[s.owner];
     const weekBadge = anyThisWeek
-      ? `<span class="week-pts-badge" style="color:${weekPt > 0 ? 'var(--win)' : 'var(--muted)'}">+${fmtPts(weekPt)} Wk${currentWeek}</span>`
+      ? `<span class="week-pts-badge" style="color:${weekPt > 0 ? 'var(--win)' : 'var(--muted)'}">+${fmtPts(weekPt)} Wk${momentumWeek}</span>`
       : '';
 
     // ── Option: Top Performers box ──
