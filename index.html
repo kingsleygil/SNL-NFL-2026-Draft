@@ -1124,22 +1124,34 @@ function getWeekTeamResults(owner) {
   });
 }
 
-// Top performers from the current week for a given owner's teams
+// Top performers for an owner — current week, falling back to prev week if no games played yet
 function getTopPerformers(owner) {
   const ownerTeams = new Set(Object.entries(TEAMS).filter(([,t]) => t.owner === owner).map(([n]) => n));
-  const seen = new Set();
-  const performers = [];
-  for (const g of (gamesCache[currentWeek] || [])) {
-    if (!g.isDone && !g.isLive) continue;
-    for (const l of (g.leaders || [])) {
-      if (!ownerTeams.has(l.teamName)) continue;
-      const key = l.name + l.stat;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      performers.push(l);
+
+  function performersForWeek(week) {
+    const seen = new Set();
+    const out = [];
+    for (const g of (gamesCache[week] || [])) {
+      if (!g.isDone && !g.isLive) continue;
+      for (const l of (g.leaders || [])) {
+        if (!ownerTeams.has(l.teamName)) continue;
+        const key = l.name + l.stat;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(l);
+      }
     }
+    return out;
   }
-  return performers;
+
+  const current = performersForWeek(currentWeek);
+  if (current.length) return { performers: current, week: currentWeek };
+  // Fall back to previous week if current week hasn't started
+  if (currentWeek > 1 && gamesCache[currentWeek - 1]) {
+    const prev = performersForWeek(currentWeek - 1);
+    if (prev.length) return { performers: prev, week: currentWeek - 1 };
+  }
+  return { performers: [], week: currentWeek };
 }
 
 // Most recent completed game for any of an owner's teams
@@ -1226,10 +1238,10 @@ function renderLeaderboard() {
       : '';
 
     // ── Option: Top Performers box ──
-    const performers = getTopPerformers(s.owner);
+    const { performers, week: perfWeek } = getTopPerformers(s.owner);
     const performersHtml = performers.length ? `
       <div class="performers-card">
-        <div class="performers-title">⚡ Week ${currentWeek} Top Performers</div>
+        <div class="performers-title">⚡ Week ${perfWeek} Top Performers</div>
         <div class="performers-list">
           ${performers.slice(0, 3).map(p => `
             <div class="performer-row">
@@ -1278,7 +1290,7 @@ function renderLeaderboard() {
             ${weekResultsHtml}
             ${performers.length ? `
             <div class="inline-performers">
-              <div class="inline-performers-title">⚡ Week ${currentWeek} Top Performers</div>
+              <div class="inline-performers-title">⚡ Week ${perfWeek} Top Performers</div>
               ${performers.slice(0, 3).map(p => `
                 <div class="inline-performer-row">
                   <img src="${p.headshot || ''}" class="inline-performer-hs"
